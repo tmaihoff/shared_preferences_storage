@@ -4,11 +4,12 @@
 [![Powered by Mason](https://img.shields.io/endpoint?url=https%3A%2F%2Ftinyurl.com%2Fmason-badge)](https://github.com/felangel/mason)
 [![License: MIT][license_badge]][license_link]
 
-A Flutter storage implementation for **[HydratedBloc][hydrated_bloc_link]** and **[HydratedCubit][hydrated_bloc_link]** using [shared_preferences][shared_preferences_link]. This package provides a simple way to persist and restore bloc/cubit state across app restarts.
+A Flutter storage implementation for **[HydratedBloc][hydrated_bloc_link]** and **[HydratedCubit][hydrated_bloc_link]** using [shared_preferences][shared_preferences_link]. This package provides a simple way to persist and restore bloc/cubit state **across app installs**.
 
 ## Features ✨
 
-- 🔄 **State Persistence**: Automatically persist and restore your bloc/cubit state
+- 💾 **Survives App Installs**: State persists even when the app is reinstalled (backed up to cloud on iOS/Android)
+- 🎨 **Perfect for App Settings**: Ideal for theme preferences, onboarding flags, rating dialog states, and user preferences
 - 📱 **Cross-Platform**: Works on iOS, Android, Web, macOS, Windows, and Linux
 - 🔒 **Thread-Safe**: Synchronized read/write operations for data integrity
 - 🚀 **Easy Setup**: Simple one-line initialization
@@ -16,7 +17,16 @@ A Flutter storage implementation for **[HydratedBloc][hydrated_bloc_link]** and 
 
 ## Why Use This Package? 🤔
 
-When building Flutter applications with the [bloc][bloc_link] library, you often need to persist state across app restarts. [HydratedBloc][hydrated_bloc_link] and [HydratedCubit][hydrated_bloc_link] provide this functionality but require a `Storage` implementation.
+When building Flutter applications with the [bloc][bloc_link] library, you often need to persist state. [HydratedBloc][hydrated_bloc_link] and [HydratedCubit][hydrated_bloc_link] provide this functionality but require a `Storage` implementation.
+
+**Why SharedPreferencesStorage over Hive?**
+
+Unlike Hive-based storage (which only persists across app restarts), **SharedPreferencesStorage** uses the platform's shared preferences which are **backed up to the cloud** (iCloud on iOS, Google Backup on Android). This means your state survives app reinstalls — perfect for:
+
+- 🎨 **Theme Mode**: Light/dark mode preferences
+- ⭐ **Rating Dialog Flags**: "Don't show again" or "Already rated" states
+- 🚀 **Onboarding State**: Whether the user has completed onboarding
+- ⚙️ **User Preferences**: Any settings the user expects to persist across reinstalls
 
 This package provides a **SharedPreferencesStorage** class that implements the `Storage` interface from [hydrated_bloc][hydrated_bloc_link], allowing you to easily persist your bloc/cubit state using [shared_preferences][shared_preferences_link].
 
@@ -66,43 +76,63 @@ Future<void> main() async {
 
 ### Using HydratedCubit
 
-Create a cubit that automatically persists its state:
+Create a cubit that automatically persists its state across app installs:
 
 ```dart
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 
-class CounterCubit extends HydratedCubit<int> {
-  CounterCubit() : super(0);
+enum ThemeMode { light, dark, system }
 
-  void increment() => emit(state + 1);
-  void decrement() => emit(state - 1);
+class ThemeModeCubit extends HydratedCubit<ThemeMode> {
+  ThemeModeCubit() : super(ThemeMode.system);
 
-  @override
-  int fromJson(Map<String, dynamic> json) => json['value'] as int;
+  void setThemeMode(ThemeMode mode) => emit(mode);
 
   @override
-  Map<String, dynamic> toJson(int state) => {'value': state};
+  ThemeMode fromJson(Map<String, dynamic> json) => 
+      ThemeMode.values[json['themeMode'] as int];
+
+  @override
+  Map<String, dynamic> toJson(ThemeMode state) => {'themeMode': state.index};
 }
 ```
 
 ### Using HydratedBloc
 
-Create a bloc that automatically persists its state:
+Create a bloc for app settings that persist across reinstalls:
 
 ```dart
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 
-class CounterBloc extends HydratedBloc<CounterEvent, int> {
-  CounterBloc() : super(0) {
-    on<Increment>((event, emit) => emit(state + 1));
-    on<Decrement>((event, emit) => emit(state - 1));
+class AppSettingsState {
+  final bool hasSeenOnboarding;
+  final bool hasRatedApp;
+  
+  const AppSettingsState({
+    this.hasSeenOnboarding = false,
+    this.hasRatedApp = false,
+  });
+}
+
+class AppSettingsBloc extends HydratedBloc<AppSettingsEvent, AppSettingsState> {
+  AppSettingsBloc() : super(const AppSettingsState()) {
+    on<CompleteOnboarding>((event, emit) => 
+        emit(AppSettingsState(hasSeenOnboarding: true, hasRatedApp: state.hasRatedApp)));
+    on<MarkAppAsRated>((event, emit) => 
+        emit(AppSettingsState(hasSeenOnboarding: state.hasSeenOnboarding, hasRatedApp: true)));
   }
 
   @override
-  int fromJson(Map<String, dynamic> json) => json['value'] as int;
+  AppSettingsState fromJson(Map<String, dynamic> json) => AppSettingsState(
+    hasSeenOnboarding: json['hasSeenOnboarding'] as bool? ?? false,
+    hasRatedApp: json['hasRatedApp'] as bool? ?? false,
+  );
 
   @override
-  Map<String, dynamic> toJson(int state) => {'value': state};
+  Map<String, dynamic> toJson(AppSettingsState state) => {
+    'hasSeenOnboarding': state.hasSeenOnboarding,
+    'hasRatedApp': state.hasRatedApp,
+  };
 }
 ```
 
