@@ -22,7 +22,10 @@ class SharedPreferencesStorage implements Storage {
   /// Returns an instance of [SharedPreferencesStorage].
   ///
   /// Set [loggingEnabled] to `true` to enable debug logging (defaults to
-  /// `false`).
+  /// `false`). **Note:** When using this method, the `loggingEnabled` setting
+  /// only applies when the instance is first created. Subsequent calls to
+  /// `build()` with different `loggingEnabled` values will have no effect due
+  /// to the singleton caching behavior.
   ///
   /// ```dart
   /// import 'package:flutter/material.dart';

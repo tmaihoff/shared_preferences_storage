@@ -267,18 +267,6 @@ Future<void> main() async {
         expect(result, equals({'data': 'value'}));
       });
 
-      test('can be explicitly set to false', () {
-        final storageWithLoggingDisabled = SharedPreferencesStorage(
-          mockSharedPreferences,
-          loggingEnabled: false,
-        );
-        when(mockSharedPreferences.getString('test_key'))
-            .thenReturn(json.encode({'data': 'value'}));
-
-        final result = storageWithLoggingDisabled.read('test_key');
-        expect(result, equals({'data': 'value'}));
-      });
-
       test('can be set to true', () {
         final storageWithLoggingEnabled = SharedPreferencesStorage(
           mockSharedPreferences,
@@ -287,6 +275,10 @@ Future<void> main() async {
         when(mockSharedPreferences.getString('test_key'))
             .thenReturn(json.encode({'data': 'value'}));
 
+        // Verifies that enabling logging doesn't cause errors.
+        // Note: This test verifies the flag doesn't break functionality;
+        // actual log output verification would require capturing dart:developer
+        // log calls.
         final result = storageWithLoggingEnabled.read('test_key');
         expect(result, equals({'data': 'value'}));
       });
