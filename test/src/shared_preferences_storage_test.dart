@@ -254,5 +254,48 @@ Future<void> main() async {
         verifyNever(mockSharedPreferences.clear());
       });
     });
+
+    group('loggingEnabled', () {
+      test('defaults to false when not specified', () {
+        final storageWithDefaultLogging =
+            SharedPreferencesStorage(mockSharedPreferences);
+        when(mockSharedPreferences.getString('test_key'))
+            .thenReturn(json.encode({'data': 'value'}));
+
+        // Should work without issues - logging is disabled by default
+        final result = storageWithDefaultLogging.read('test_key');
+        expect(result, equals({'data': 'value'}));
+      });
+
+      test('can be explicitly set to false', () {
+        final storageWithLoggingDisabled = SharedPreferencesStorage(
+          mockSharedPreferences,
+          loggingEnabled: false,
+        );
+        when(mockSharedPreferences.getString('test_key'))
+            .thenReturn(json.encode({'data': 'value'}));
+
+        final result = storageWithLoggingDisabled.read('test_key');
+        expect(result, equals({'data': 'value'}));
+      });
+
+      test('can be set to true', () {
+        final storageWithLoggingEnabled = SharedPreferencesStorage(
+          mockSharedPreferences,
+          loggingEnabled: true,
+        );
+        when(mockSharedPreferences.getString('test_key'))
+            .thenReturn(json.encode({'data': 'value'}));
+
+        final result = storageWithLoggingEnabled.read('test_key');
+        expect(result, equals({'data': 'value'}));
+      });
+
+      test('build accepts loggingEnabled parameter', () async {
+        final instance =
+            await SharedPreferencesStorage.build(loggingEnabled: true);
+        expect(instance, isA<SharedPreferencesStorage>());
+      });
+    });
   });
 }

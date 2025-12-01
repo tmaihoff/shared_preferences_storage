@@ -14,9 +14,15 @@ import 'package:synchronized/synchronized.dart';
 class SharedPreferencesStorage implements Storage {
   /// {@macro shared_preferences_storage}
   @visibleForTesting
-  SharedPreferencesStorage(this._sharedPreferences);
+  SharedPreferencesStorage(
+    this._sharedPreferences, {
+    bool loggingEnabled = false,
+  }) : _loggingEnabled = loggingEnabled;
 
   /// Returns an instance of [SharedPreferencesStorage].
+  ///
+  /// Set [loggingEnabled] to `true` to enable debug logging (defaults to
+  /// `false`).
   ///
   /// ```dart
   /// import 'package:flutter/material.dart';
@@ -29,12 +35,17 @@ class SharedPreferencesStorage implements Storage {
   ///   runApp(App());
   /// }
   /// ```
-  static Future<SharedPreferencesStorage> build() {
+  static Future<SharedPreferencesStorage> build({
+    bool loggingEnabled = false,
+  }) {
     return _lock.synchronized(() async {
       if (_instance != null) return _instance!;
 
       final sharedPreferences = await SharedPreferences.getInstance();
-      return _instance = SharedPreferencesStorage(sharedPreferences);
+      return _instance = SharedPreferencesStorage(
+        sharedPreferences,
+        loggingEnabled: loggingEnabled,
+      );
     });
   }
 
@@ -42,6 +53,7 @@ class SharedPreferencesStorage implements Storage {
   static SharedPreferencesStorage? _instance;
 
   final SharedPreferences _sharedPreferences;
+  final bool _loggingEnabled;
   bool _closed = false;
 
   @override
@@ -51,18 +63,22 @@ class SharedPreferencesStorage implements Storage {
     try {
       final value = _sharedPreferences.getString(key);
       if (value == null) return null;
-      log(
-        'Reading key "$key" from SharedPreferences\nValue: $value',
-        name: 'SharedPreferencesStorage',
-      );
+      if (_loggingEnabled) {
+        log(
+          'Reading key "$key" from SharedPreferences\nValue: $value',
+          name: 'SharedPreferencesStorage',
+        );
+      }
       return json.decode(value);
     } catch (e) {
-      log(
-        'Error reading key "$key" from SharedPreferences',
-        name: 'SharedPreferencesStorage',
-        error: e,
-        stackTrace: StackTrace.current,
-      );
+      if (_loggingEnabled) {
+        log(
+          'Error reading key "$key" from SharedPreferences',
+          name: 'SharedPreferencesStorage',
+          error: e,
+          stackTrace: StackTrace.current,
+        );
+      }
       return null;
     }
   }
@@ -73,19 +89,23 @@ class SharedPreferencesStorage implements Storage {
 
     return _lock.synchronized(() async {
       try {
-        log(
-          'Writing key "$key" to SharedPreferences\nValue: $value',
-          name: 'SharedPreferencesStorage',
-        );
+        if (_loggingEnabled) {
+          log(
+            'Writing key "$key" to SharedPreferences\nValue: $value',
+            name: 'SharedPreferencesStorage',
+          );
+        }
         final encodedValue = json.encode(value);
         await _sharedPreferences.setString(key, encodedValue);
       } catch (e) {
-        log(
-          'Error writing key "$key" to SharedPreferences',
-          name: 'SharedPreferencesStorage',
-          error: e,
-          stackTrace: StackTrace.current,
-        );
+        if (_loggingEnabled) {
+          log(
+            'Error writing key "$key" to SharedPreferences',
+            name: 'SharedPreferencesStorage',
+            error: e,
+            stackTrace: StackTrace.current,
+          );
+        }
       }
     });
   }
