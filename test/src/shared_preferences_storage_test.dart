@@ -264,15 +264,15 @@ Future<void> main() async {
       test('sets _closed to true and nulls _instance', () async {
         // Create a fresh storage instance
         final freshStorage = SharedPreferencesStorage(mockSharedPreferences);
-        
+
         // Verify storage is not closed initially by doing a read
         when(mockSharedPreferences.getString('test_key')).thenReturn(null);
         freshStorage.read('test_key');
         verify(mockSharedPreferences.getString('test_key')).called(1);
-        
+
         // Close the storage
         await freshStorage.close();
-        
+
         // Verify storage is now closed
         freshStorage.read('after_close_key');
         verifyNever(mockSharedPreferences.getString('after_close_key'));
