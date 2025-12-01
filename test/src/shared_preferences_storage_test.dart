@@ -131,6 +131,18 @@ Future<void> main() async {
             .called(1);
       });
 
+      test('writes string value to SharedPreferences', () async {
+        const data = 'simple string';
+        final encodedData = json.encode(data);
+        when(mockSharedPreferences.setString('string_key', encodedData))
+            .thenAnswer((_) async => true);
+
+        await storage.write('string_key', data);
+
+        verify(mockSharedPreferences.setString('string_key', encodedData))
+            .called(1);
+      });
+
       test(
           'silently ignores errors during JSON encoding and does not call '
           'setString', () async {
@@ -141,6 +153,19 @@ Future<void> main() async {
           completes,
         );
         verifyNever(mockSharedPreferences.setString(any, any));
+      });
+
+      test('handles setString throwing an exception', () async {
+        final data = {'id': 3, 'value': 'Test'};
+        final encodedData = json.encode(data);
+        when(mockSharedPreferences.setString('error_key', encodedData))
+            .thenThrow(Exception('Write failed'));
+
+        // Should complete without throwing, as the exception is caught
+        await expectLater(
+          storage.write('error_key', data),
+          completes,
+        );
       });
 
       test('does nothing if storage is closed', () async {
@@ -156,6 +181,13 @@ Future<void> main() async {
             .thenAnswer((_) async => true);
         await storage.delete('delete_key');
         verify(mockSharedPreferences.remove('delete_key')).called(1);
+      });
+
+      test('removes another key from SharedPreferences', () async {
+        when(mockSharedPreferences.remove('another_key'))
+            .thenAnswer((_) async => true);
+        await storage.delete('another_key');
+        verify(mockSharedPreferences.remove('another_key')).called(1);
       });
 
       test('does nothing if storage is closed', () async {
@@ -192,6 +224,12 @@ Future<void> main() async {
         );
       });
 
+      test('clears storage successfully', () async {
+        when(mockSharedPreferences.clear()).thenAnswer((_) async => true);
+        await storage.clear();
+        verify(mockSharedPreferences.clear()).called(1);
+      });
+
       test('does nothing if storage is closed', () async {
         await storage.close();
         await storage.clear();
@@ -221,6 +259,23 @@ Future<void> main() async {
           reason: 'After close(), build() should create a new instance as '
               'static _instance was nulled.',
         );
+      });
+
+      test('sets _closed to true and nulls _instance', () async {
+        // Create a fresh storage instance
+        final freshStorage = SharedPreferencesStorage(mockSharedPreferences);
+        
+        // Verify storage is not closed initially by doing a read
+        when(mockSharedPreferences.getString('test_key')).thenReturn(null);
+        freshStorage.read('test_key');
+        verify(mockSharedPreferences.getString('test_key')).called(1);
+        
+        // Close the storage
+        await freshStorage.close();
+        
+        // Verify storage is now closed
+        freshStorage.read('after_close_key');
+        verifyNever(mockSharedPreferences.getString('after_close_key'));
       });
 
       test(
