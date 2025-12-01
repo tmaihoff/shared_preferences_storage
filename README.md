@@ -24,6 +24,8 @@ This package provides a **SharedPreferencesStorage** class that implements the `
 
 **❗ In order to start using Shared Preferences Storage you must have the [Flutter SDK][flutter_install_link] installed on your machine.**
 
+> **Note**: This package is not published to pub.dev. Install directly from GitHub.
+
 Add `shared_preferences_storage` to your `pubspec.yaml`:
 
 ```yaml
@@ -112,7 +114,7 @@ class CounterBloc extends HydratedBloc<CounterEvent, int> {
 
 | Method | Description |
 |--------|-------------|
-| `build()` | Creates a new instance of `SharedPreferencesStorage` (singleton pattern) |
+| `build()` | Returns a singleton instance of `SharedPreferencesStorage`. Subsequent calls return the same instance. |
 | `read(String key)` | Reads a value from storage |
 | `write(String key, dynamic value)` | Writes a value to storage |
 | `delete(String key)` | Deletes a value from storage |
